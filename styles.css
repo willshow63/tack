@@ -90,7 +90,8 @@ body {
 /* Rolled state never shows the floating shadow; lets the divider sit at window edge */
 body.rolled .card { box-shadow: var(--shadow-inset, inset 0 1px 0 rgba(255,255,255,0.5)); }
 body.rolled.theme-dark .card { box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
-body.rolled .card { flex: 0 0 auto; height: auto; }
+/* card stays flex:1 (fills body) so it animates with the window — no empty
+   transparent strip below the card during the resize */
 
 /* Coral ribbon */
 .card::before {
@@ -181,26 +182,25 @@ body.rolled .card { flex: 0 0 auto; height: auto; }
   overflow: hidden;
   min-height: 0;
 }
-/* When rolled, keep header + input visible; collapse list+foot to 0 so the
-   card fits header+input exactly and the divider sits at the window edge. */
+/* When rolled, fade + collapse list/foot over the SAME 150ms window resize.
+   Both directions are symmetric so unroll/roll feel the same. */
 .list-area, .foot {
   opacity: 1;
-  transition: opacity 140ms 50ms;
+  max-height: 100vh;
+  overflow: hidden;
+  transition: opacity 150ms ease, max-height 150ms ease, padding 150ms ease;
 }
 .card.rolled .list-area,
 .card.rolled .foot {
   opacity: 0;
-  pointer-events: none;
-  height: 0;
+  max-height: 0;
   padding-top: 0;
   padding-bottom: 0;
   border-top: 0;
-  flex: 0 0 0;
-  overflow: hidden;
-  transition: opacity 90ms;
+  pointer-events: none;
 }
 .card.rolled {
-  height: auto;    /* let the card shrink to its now-collapsed content */
+  /* keep card filling body (flex:1) so it animates with the window */
   min-height: 0;
 }
 
