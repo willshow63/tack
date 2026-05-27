@@ -9,9 +9,9 @@
   --ink-whisper:   #AEAEB2;
   --line:          rgba(60, 60, 67, 0.12);
   --line-strong:   rgba(60, 60, 67, 0.22);
-  --coral:         #0071E3;
-  --coral-soft:    rgba(0, 113, 227, 0.18);
-  --flag:          #E94B3C;             /* important flag: red in both themes */
+  --coral:         #E94B3C;             /* accent matches the tack red */
+  --coral-soft:    rgba(233, 75, 60, 0.18);
+  --flag:          #E94B3C;             /* important flag: same red */
   --card-border:   rgba(0, 0, 0, 0.08);
   --shadow:        0 10px 28px rgba(0, 0, 0, 0.10),
                    0 4px 10px rgba(0, 0, 0, 0.05),
@@ -34,8 +34,8 @@ body.theme-dark {
   --ink-whisper:   #636366;
   --line:          rgba(255, 255, 255, 0.10);
   --line-strong:   rgba(255, 255, 255, 0.20);
-  --coral:         #0A84FF;
-  --coral-soft:    rgba(10, 132, 255, 0.24);
+  --coral:         #FF5A4A;             /* slightly brighter red for contrast on dark */
+  --coral-soft:    rgba(255, 90, 74, 0.24);
   --card-border:   rgba(255, 255, 255, 0.10);
   --shadow:        inset 0 1px 0 rgba(255,255,255,0.04);
   --check-tick:    #FFFFFF;
