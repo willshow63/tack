@@ -12,32 +12,7 @@ if (-not (Test-Path -LiteralPath $root)) {
 
 Set-Location -LiteralPath $root
 
-# --- Tray icon (created once, 256x256 so the installer can also use it) ---
-$iconPath = Join-Path $root 'icon.png'
-if (-not (Test-Path -LiteralPath $iconPath)) {
-    Write-Host "Creating app icon..."
-    Add-Type -AssemblyName System.Drawing
-    $size = 256
-    $bmp = New-Object System.Drawing.Bitmap $size, $size
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $g.Clear([System.Drawing.Color]::Transparent)
-    $coral = [System.Drawing.Color]::FromArgb(233, 75, 60)
-    $brush = New-Object System.Drawing.SolidBrush $coral
-    $pad = 16
-    $g.FillEllipse($brush, $pad, $pad, $size - 2*$pad, $size - 2*$pad)
-    $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::White), 24
-    $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $pen.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
-    $pts = @(
-        (New-Object System.Drawing.Point  72, 136),
-        (New-Object System.Drawing.Point 112, 176),
-        (New-Object System.Drawing.Point 184,  88)
-    )
-    $g.DrawLines($pen, $pts)
-    $bmp.Save($iconPath, [System.Drawing.Imaging.ImageFormat]::Png)
-    $g.Dispose(); $bmp.Dispose(); $brush.Dispose(); $pen.Dispose()
-}
+# icon.png + icon.ico ship with the repo
 
 # --- Dependencies (installed once) ---
 if (-not (Test-Path -LiteralPath (Join-Path $root 'node_modules'))) {
