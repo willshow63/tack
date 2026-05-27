@@ -1,10 +1,10 @@
-# Fidget
+# Tack
 
 A minimalist desktop to-do widget for Windows. Frameless, hotkey-summoned, multi-list, dark/light themes.
 
 ## Install
 
-Download the latest `Fidget Setup x.x.x.exe` from the [releases](https://github.com/willshow63/fidget/releases) (or build your own — see below). Double-click to install. The installer adds a desktop and start-menu shortcut, and launches Fidget at the end. On first launch the app enables "start with Windows" automatically.
+Download the latest `Tack Setup x.x.x.exe` from the [releases](https://github.com/willshow63/tack/releases) (or build your own — see below). Double-click to install. The installer adds a desktop and start-menu shortcut, and launches Tack at the end. On first launch the app enables "start with Windows" automatically.
 
 ## Use
 
@@ -33,17 +33,17 @@ The hamburger opens a list switcher. **All Lists** at the top shows every task f
 
 ## Where data lives
 
-`%APPDATA%\fidget\tasks.json`. Auto-saved on every change (debounced 200ms, atomic write).
+`%APPDATA%\tack\tasks.json`. Auto-saved on every change (debounced 200ms, atomic write).
 
 ## Build from source
 
 ```powershell
-git clone https://github.com/willshow63/fidget.git
-cd fidget
+git clone https://github.com/willshow63/tack.git
+cd tack
 npm install
-.\Start-Fidget.ps1            # dev mode — runs from source
+.\Start-Tack.ps1            # dev mode — runs from source
 # or
-npm run build                  # builds dist\Fidget Setup x.x.x.exe
+npm run build                # builds dist\Tack Setup x.x.x.exe
 ```
 
 ## Stack

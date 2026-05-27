@@ -1,6 +1,6 @@
 {
-  "name": "fidget",
-  "productName": "Fidget",
+  "name": "tack",
+  "productName": "Tack",
   "version": "1.0.0",
   "description": "A minimalist desktop to-do widget. Frameless, hotkey-summoned, paper-aesthetic.",
   "main": "main.js",
@@ -16,8 +16,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.willshow63.fidget",
-    "productName": "Fidget",
+    "appId": "com.willshow63.tack",
+    "productName": "Tack",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -43,7 +43,7 @@
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
       "menuCategory": "Productivity",
-      "shortcutName": "Fidget",
+      "shortcutName": "Tack",
       "installerIcon": "icon.ico",
       "uninstallerIcon": "icon.ico"
     }

@@ -1,9 +1,9 @@
-# Start-Fidget.ps1
-# Launches the Fidget widget in dev mode (no installer needed).
+# Start-Tack.ps1
+# Launches the Tack widget in dev mode (no installer needed).
 # Once running, press Ctrl+Alt+T anywhere to summon the widget.
 
 $ErrorActionPreference = 'Stop'
-$root = 'C:\Projects\fidget'
+$root = 'C:\Projects\tack'
 
 if (-not (Test-Path -LiteralPath $root)) {
     Write-Error "Project directory not found: $root"
@@ -50,7 +50,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $root 'node_modules'))) {
 $existing = Get-CimInstance Win32_Process -Filter "Name = 'electron.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.CommandLine -like "*$root*" }
 if ($existing) {
-    Write-Host "Fidget is already running (PID $(($existing | Select-Object -First 1).ProcessId)). Press Ctrl+Alt+T to summon."
+    Write-Host "Tack is already running (PID $(($existing | Select-Object -First 1).ProcessId)). Press Ctrl+Alt+T to summon."
     return
 }
 
@@ -62,4 +62,4 @@ if (-not (Test-Path -LiteralPath $electronExe)) {
 }
 
 $proc = Start-Process -FilePath $electronExe -ArgumentList $root -WorkingDirectory $root -PassThru
-Write-Host "Started Fidget (PID $($proc.Id)). Press Ctrl+Alt+T to summon."
+Write-Host "Started Tack (PID $($proc.Id)). Press Ctrl+Alt+T to summon."
