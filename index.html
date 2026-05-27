@@ -97,33 +97,34 @@
       </footer>
     </div>
 
-    <!-- Lists dropdown menu -->
-    <div class="lists-menu hidden" id="listsMenu">
-      <div class="lists-menu-items" id="listsMenuItems"></div>
-      <div class="lists-menu-actions">
-        <button class="lm-action" data-action="new">
-          <svg width="11" height="11"><use href="#i-plus"/></svg>
-          <span>New list</span>
-        </button>
-        <button class="lm-action" data-action="rename">Rename</button>
-        <button class="lm-action danger" data-action="delete">Delete</button>
+  </main>
+
+  <!-- Lists dropdown menu (sibling of card, so it can extend beyond a rolled card) -->
+  <div class="lists-menu hidden" id="listsMenu">
+    <div class="lists-menu-items" id="listsMenuItems"></div>
+    <div class="lists-menu-actions">
+      <button class="lm-action" data-action="new">
+        <svg width="11" height="11"><use href="#i-plus"/></svg>
+        <span>New list</span>
+      </button>
+      <button class="lm-action" data-action="rename">Rename</button>
+      <button class="lm-action danger" data-action="delete">Delete</button>
+    </div>
+    <div class="lm-input-wrap hidden" id="lmInputWrap">
+      <input type="text" id="lmInput" placeholder="List name" maxlength="40" />
+    </div>
+    <div class="lm-settings">
+      <div class="lm-settings-title">Settings</div>
+      <div class="setting-row" data-setting="theme">
+        <span class="setting-label">Dark mode</span>
+        <div class="toggle" id="toggleTheme"></div>
       </div>
-      <div class="lm-input-wrap hidden" id="lmInputWrap">
-        <input type="text" id="lmInput" placeholder="List name" maxlength="40" />
-      </div>
-      <div class="lm-settings">
-        <div class="lm-settings-title">Settings</div>
-        <div class="setting-row" data-setting="theme">
-          <span class="setting-label">Dark mode</span>
-          <div class="toggle" id="toggleTheme"></div>
-        </div>
-        <div class="setting-row" data-setting="showCompleted">
-          <span class="setting-label">Show completed</span>
-          <div class="toggle" id="toggleShowCompleted"></div>
-        </div>
+      <div class="setting-row" data-setting="showCompleted">
+        <span class="setting-label">Show completed</span>
+        <div class="toggle" id="toggleShowCompleted"></div>
       </div>
     </div>
-  </main>
+  </div>
 
   <script src="renderer.js"></script>
 </body>

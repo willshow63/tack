@@ -21,7 +21,7 @@ let data = null;           // full data tree
 let lmMode = null;         // 'new' | 'rename' | null
 let editingId = null;      // task currently being edited inline
 let renderedTaskIds = new Set();  // ids that were on screen at last render; used to suppress entry animation on re-render
-let autoExpandedForMenu = false;  // remember if we unrolled to show the lists menu
+let menuExpandedWindow = false;  // window was grown to fit dropdown while rolled
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
@@ -385,9 +385,9 @@ function applyRolled(r) {
   rollBtn.title = data.ui.rolledUp ? 'Roll down' : 'Roll up (Ctrl+R)';
   if (data.ui.rolledUp) {
     // CSS has collapsed list+foot; card now auto-fits header+input only.
-    // Measure on next frame; body has no padding now, so card height = window height.
+    // body padding is 16 each side, so window = card content + 32
     requestAnimationFrame(() => {
-      const h = Math.ceil(card.offsetHeight);
+      const h = Math.ceil(card.offsetHeight) + 32;
       window.todo.roll(true, h);
     });
   } else {
@@ -440,9 +440,10 @@ function closeListsMenu() {
   listsMenu.classList.add('hidden');
   lmInputWrap.classList.add('hidden');
   lmMode = null;
-  if (autoExpandedForMenu) {
-    autoExpandedForMenu = false;
-    applyRolled(true);  // re-roll if we auto-unrolled to show the menu
+  if (menuExpandedWindow) {
+    menuExpandedWindow = false;
+    // Shrink window back to natural rolled height
+    if (data.ui.rolledUp) applyRolled(true);
   }
 }
 function renderListsMenu() {
@@ -600,13 +601,16 @@ pinBtn.addEventListener('click',  () => applyPinned(!data.ui.pinned));
 burgerBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   if (listsMenu.classList.contains('hidden')) {
+    openListsMenu();
     if (data.ui.rolledUp) {
-      // Rolled card is too short for the dropdown; unroll first, remember to re-roll on close
-      autoExpandedForMenu = true;
-      applyRolled(false);
-      setTimeout(openListsMenu, 200);
-    } else {
-      openListsMenu();
+      // Card stays rolled, but grow the window taller so the dropdown has room
+      requestAnimationFrame(() => {
+        const cardH = card.offsetHeight;
+        const dropH = listsMenu.offsetHeight;
+        const winH  = cardH + dropH + 32 + 8;  // 16+16 body padding + small gap
+        menuExpandedWindow = true;
+        window.todo.roll(true, winH);
+      });
     }
   } else {
     closeListsMenu();

@@ -67,18 +67,13 @@ html, body {
 
 body {
   display: flex;
-  flex-direction: column;        /* card stacks vertically; height comes from content/flex */
+  flex-direction: column;
   color: var(--ink);
-  padding: 0;
+  padding: 16px;                /* halo always, every state, so width never jumps */
   height: 100vh;
   font-size: 13px;
   line-height: 1.4;
   box-sizing: border-box;
-  transition: padding 180ms ease;
-}
-/* Soft halo + shadow only in light mode and when not rolled */
-body:not(.theme-dark):not(.rolled) {
-  padding: 16px;
 }
 
 .card {
@@ -459,7 +454,7 @@ body.rolled .card { flex: 0 0 auto; height: auto; }
 }
 .hints kbd:first-child { margin-left: 0; }
 
-/* LISTS MENU */
+/* LISTS MENU — sibling of .card, positioned relative to body's padding box */
 .lists-menu {
   position: absolute;
   top: calc(var(--header-h) - 4px);
