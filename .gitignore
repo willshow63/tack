@@ -1,0 +1,7 @@
+node_modules/
+dist/
+tasks.json
+tasks.json.tmp
+icon.png
+*.log
+.DS_Store

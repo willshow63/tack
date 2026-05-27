@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>To-Do</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Reusable SVG symbols -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-chev" viewBox="0 0 16 16">
+        <path d="M3.5 10 8 5.5 12.5 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="i-pin-outline" viewBox="0 0 384 544">
+        <path fill="currentColor" d="M56 0C42.7 0 32 10.7 32 24S42.7 48 56 48l30.2 0-10.2 138.2C58.7 198.6 41.8 215.3 28.5 234.2 12.5 256.7 0 284.5 0 313.7 0 334.8 17.2 352 38.3 352l307.3 0c21.2 0 38.3-17.2 38.3-38.3 0-29.2-12.5-57-28.5-79.5-13.4-18.9-30.2-35.5-47.5-48L297.8 48 328 48c13.3 0 24-10.7 24-24S341.3 0 328 0L56 0zM249.7 48l10.5 141.8 1.7 22.3 18.2 13.1c16.1 11.6 29.3 26.3 40.4 42.8 6.9 10.8 13 23.3 14.7 36.1L48.8 304c2.5-15.3 9.9-29.5 18.8-42.1 10-14.1 22.9-27.1 36.4-36.8l18.2-13.1 1.7-22.3 10.5-141.8 115.4 0zM168 520c0 13.3 10.7 24 24 24s24-10.7 24-24l0-120-48 0 0 120z"/>
+      </symbol>
+      <symbol id="i-pin-fill" viewBox="0 0 384 544">
+        <path fill="currentColor" d="M32 32C32 14.3 46.3 0 64 0L320 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-29.5 0 10.3 134.1c37.1 21.2 65.8 56.4 78.2 99.7l3.8 13.4c2.8 9.7 .8 20-5.2 28.1S362 352 352 352L32 352c-10 0-19.5-4.7-25.5-12.7s-8-18.4-5.2-28.1L5 297.8c12.4-43.3 41-78.5 78.2-99.7L93.5 64 64 64C46.3 64 32 49.7 32 32zM160 400l64 0 0 112c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-112z"/>
+      </symbol>
+      <symbol id="i-burger" viewBox="0 0 16 16">
+        <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="i-flag-outline" viewBox="0 0 640 640">
+        <path fill="currentColor" d="M144 88C144 74.7 133.3 64 120 64C106.7 64 96 74.7 96 88L96 552C96 565.3 106.7 576 120 576C133.3 576 144 565.3 144 552L144 452L224.3 431.9C265.4 421.6 308.9 426.4 346.8 445.3C391 467.4 442.3 470.1 488.5 452.7L523.2 439.7C535.7 435 544 423.1 544 409.7L544 130C544 107 519.8 92 499.2 102.3L489.6 107.1C443.3 130.3 388.8 130.3 342.5 107.1C307.4 89.5 267.1 85.1 229 94.6L144 116L144 88zM144 165.5L240.6 141.3C267.6 134.6 296.1 137.7 321 150.1C375.9 177.5 439.7 179.8 496 156.9L496 398.7L471.6 407.8C437.9 420.4 400.4 418.5 368.2 402.4C320 378.3 264.9 372.3 212.6 385.3L144 402.5L144 165.5z"/>
+      </symbol>
+      <symbol id="i-flag-fill" viewBox="0 0 640 640">
+        <path fill="currentColor" d="M160 96C160 78.3 145.7 64 128 64C110.3 64 96 78.3 96 96L96 544C96 561.7 110.3 576 128 576C145.7 576 160 561.7 160 544L160 422.4L222.7 403.6C264.6 391 309.8 394.9 348.9 414.5C391.6 435.9 441.4 438.5 486.1 421.7L523.2 407.8C535.7 403.1 544 391.2 544 377.8L544 130.1C544 107.1 519.8 92.1 499.2 102.4L487.4 108.3C442.5 130.8 389.6 130.8 344.6 108.3C308.2 90.1 266.3 86.5 227.4 98.2L160 118.4L160 96z"/>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 16 16">
+        <path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 448 512">
+        <path fill="currentColor" d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/>
+      </symbol>
+      <symbol id="i-x" viewBox="0 0 384 512">
+        <path fill="currentColor" d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/>
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 16 16">
+        <circle cx="8" cy="8" r="3.1" fill="currentColor"/>
+        <g stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none">
+          <line x1="8" y1="0.8" x2="8" y2="2.6"/>
+          <line x1="8" y1="13.4" x2="8" y2="15.2"/>
+          <line x1="0.8" y1="8" x2="2.6" y2="8"/>
+          <line x1="13.4" y1="8" x2="15.2" y2="8"/>
+          <line x1="2.9" y1="2.9" x2="4.2" y2="4.2"/>
+          <line x1="11.8" y1="11.8" x2="13.1" y2="13.1"/>
+          <line x1="2.9" y1="13.1" x2="4.2" y2="11.8"/>
+          <line x1="11.8" y1="4.2" x2="13.1" y2="2.9"/>
+        </g>
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M13.7 10.2A5.6 5.6 0 1 1 5.8 2.3a4.4 4.4 0 0 0 7.9 7.9z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <main class="card" id="card">
+    <header class="head" id="head">
+      <div class="head-left">
+        <span class="date" id="dateLabel">today</span>
+        <span class="list-sep"> · </span>
+        <span class="list-name" id="listName">Main</span>
+      </div>
+      <div class="head-actions">
+        <button class="hbtn roll" id="rollBtn" title="Roll up">
+          <svg width="13" height="13"><use href="#i-chev"/></svg>
+        </button>
+        <button class="hbtn pin active" id="pinBtn" title="Unpin (let click-away hide)">
+          <svg width="12" height="17"><use href="#i-pin-fill"/></svg>
+        </button>
+        <button class="hbtn burger" id="burgerBtn" title="Switch list">
+          <svg width="14" height="14"><use href="#i-burger"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="body" id="body">
+      <div class="input-wrap">
+        <input id="taskInput" type="text" placeholder="What needs doing?" autocomplete="off" spellcheck="true" maxlength="280" />
+        <span class="enter-hint">&#9166;</span>
+      </div>
+
+      <div class="list-area" id="listArea"></div>
+
+      <footer class="foot">
+        <span class="count" id="countLabel">empty</span>
+        <span class="hints">
+          <kbd>&#9166;</kbd>add
+          <kbd>Spc</kbd>done
+          <kbd>Esc</kbd>hide
+        </span>
+      </footer>
+    </div>
+
+    <!-- Lists dropdown menu -->
+    <div class="lists-menu hidden" id="listsMenu">
+      <div class="lists-menu-items" id="listsMenuItems"></div>
+      <div class="lists-menu-actions">
+        <button class="lm-action" data-action="new">
+          <svg width="11" height="11"><use href="#i-plus"/></svg>
+          <span>New list</span>
+        </button>
+        <button class="lm-action" data-action="rename">Rename</button>
+        <button class="lm-action danger" data-action="delete">Delete</button>
+      </div>
+      <div class="lm-input-wrap hidden" id="lmInputWrap">
+        <input type="text" id="lmInput" placeholder="List name" maxlength="40" />
+      </div>
+      <div class="lm-settings">
+        <div class="lm-settings-title">Settings</div>
+        <div class="setting-row" data-setting="theme">
+          <span class="setting-label">Dark mode</span>
+          <div class="toggle" id="toggleTheme"></div>
+        </div>
+        <div class="setting-row" data-setting="showCompleted">
+          <span class="setting-label">Show completed</span>
+          <div class="toggle" id="toggleShowCompleted"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
