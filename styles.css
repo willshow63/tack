@@ -67,6 +67,7 @@ html, body {
 
 body {
   display: flex;
+  flex-direction: column;        /* card stacks vertically; height comes from content/flex */
   color: var(--ink);
   padding: 0;
   height: 100vh;
