@@ -77,6 +77,10 @@ function createWindow() {
     const [x, y] = win.getPosition();
     anchorPos = [x, y];     // user dragged: trust the new spot
   });
+  // resizable:true is needed so setSize works on Windows, but block user-initiated resizes
+  win.on('will-resize', (e) => {
+    if (!movingProgrammatically) e.preventDefault();
+  });
 }
 
 function positionAtCursor() {
