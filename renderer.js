@@ -384,12 +384,12 @@ function applyRolled(r) {
   document.body.classList.toggle('rolled', data.ui.rolledUp);
   rollBtn.title = data.ui.rolledUp ? 'Roll down' : 'Roll up (Ctrl+R)';
   if (data.ui.rolledUp) {
-    // Measure head + input wrap directly — independent of .rolled animation state,
-    // so the value is stable whether we're rolling up or down.
-    const head = document.querySelector('.head');
-    const inputWrap = document.querySelector('.input-wrap');
-    const h = head.offsetHeight + inputWrap.offsetHeight + 32;  // +32 body padding
-    window.todo.roll(true, h);
+    // CSS has collapsed list+foot; card now auto-fits header+input only.
+    // body padding is 16 each side, so window = card content + 32
+    requestAnimationFrame(() => {
+      const h = Math.ceil(card.offsetHeight) + 32;
+      window.todo.roll(true, h);
+    });
   } else {
     window.todo.roll(false);
   }
