@@ -50,7 +50,7 @@ function migrate(raw) {
       { id: 'work',    name: 'Work',    tasks: [] },
     ],
     activeListId: 'default',
-    ui: { rolledUp: false, pinned: true, theme: 'dark', showCompleted: true, showTime: true, collapsedGroups: {} },
+    ui: { rolledUp: false, pinned: true, theme: 'dark', showCompleted: true, showTime: true, tourSeen: false, collapsedGroups: {} },
   };
   if (!raw) return fresh;
   if (Array.isArray(raw)) {
@@ -67,6 +67,7 @@ function migrate(raw) {
         theme: raw.ui?.theme === 'light' ? 'light' : 'dark',
         showCompleted: raw.ui?.showCompleted !== false,
         showTime: raw.ui?.showTime !== false,
+        tourSeen: !!raw.ui?.tourSeen,
         collapsedGroups: raw.ui?.collapsedGroups || {},
       },
     };
@@ -79,6 +80,7 @@ function migrate(raw) {
     theme: raw.ui?.theme === 'light' ? 'light' : 'dark',
     showCompleted: raw.ui?.showCompleted !== false,
         showTime: raw.ui?.showTime !== false,
+        tourSeen: !!raw.ui?.tourSeen,
     collapsedGroups: { default: raw.ui?.collapsedGroups || ['done'] },
   };
   return fresh;
@@ -428,9 +430,11 @@ function applyRolled(r) {
   document.body.classList.toggle('rolled', data.ui.rolledUp);
   rollBtn.title = data.ui.rolledUp ? 'Roll down' : 'Roll up (Ctrl+R)';
   if (data.ui.rolledUp) {
-    // body padding now 0 top + 40 bottom; window = card content + 40
+    // Account for the 60px top padding the demo adds; otherwise the header
+    // and input get clipped because we'd be sizing as if no caption existed.
     requestAnimationFrame(() => {
-      const h = Math.ceil(card.offsetHeight) + 40;
+      const demoPad = document.body.classList.contains('demo-active') ? 60 : 0;
+      const h = Math.ceil(card.offsetHeight) + 40 + demoPad;
       window.todo.roll(true, h);
     });
   } else {
@@ -706,9 +710,309 @@ document.addEventListener('click', () => {
 
 dateLabel.addEventListener('dblclick', () => applyRolled(!data.ui.rolledUp));
 
-window.todo.onFocusInput(() => focusInput());
+let firstShow = true;
+window.todo.onFocusInput(() => {
+  focusInput();
+  // Run the demo on the first time the widget is actually shown, not on render load
+  if (firstShow && data && !data.ui.tourSeen) {
+    firstShow = false;
+    setTimeout(runDemo, 400);
+  } else {
+    firstShow = false;
+  }
+});
 window.todo.onPinnedChanged((p) => applyPinned(p));
 window.todo.onThemeSet((t) => applyTheme(t));
 
+// === FIRST-LAUNCH DEMO (scripted actions, back/forward navigation) ===
+const demo        = $('#demo');
+const demoCaption = $('#demoCaption');
+const demoStepEl  = $('#demoStep');
+const demoTextEl  = $('#demoText');
+const demoCursor  = $('#demoCursor');
+const demoSkipBtn = $('#demoSkip');
+const demoBackBtn = $('#demoBack');
+const demoFwdBtn  = $('#demoForward');
+let demoSkipped = false;
+let demoTaskIds = [];
+let demoSnapshots = [];        // tasks snapshot before each step's action
+let demoNavResolver = null;
+let demoIdx = 0;
+let demoPreviousListId = null;   // saved so we can restore the user's view after the demo
+
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+const isSkipped = () => demoSkipped;
+
+function setCaptionText(stepNum, total, text) {
+  demoStepEl.textContent = `${stepNum} / ${total}`;
+  demoTextEl.textContent = text;
+}
+function captionShow() {
+  demoCaption.classList.add('show');
+}
+function captionReady() {
+  demoCaption.classList.add('ready');
+  demoFwdBtn.disabled = false;
+}
+function setBackEnabled(enabled) {
+  demoBackBtn.disabled = !enabled;
+}
+
+async function moveCursorTo(el) {
+  if (!el || isSkipped()) return;
+  const r = el.getBoundingClientRect();
+  demoCursor.classList.remove('hidden');
+  demoCursor.style.left = `${r.left + r.width / 2}px`;
+  demoCursor.style.top  = `${r.top + r.height / 2}px`;
+  await wait(520);
+}
+async function fakeClick(el) {
+  if (!el || isSkipped()) return;
+  await moveCursorTo(el);
+  demoCursor.classList.add('click');
+  await wait(380);
+  demoCursor.classList.remove('click');
+}
+async function typeInto(el, text, perChar = 55) {
+  if (!el || isSkipped()) return;
+  el.focus();
+  el.value = '';
+  for (const ch of text) {
+    if (isSkipped()) return;
+    el.value += ch;
+    el.dispatchEvent(new Event('input'));
+    await wait(perChar);
+  }
+}
+
+function waitForNav() {
+  return new Promise(resolve => { demoNavResolver = resolve; });
+}
+function navigate(dir) {
+  if (!demoNavResolver) return;
+  const r = demoNavResolver;
+  demoNavResolver = null;
+  r(dir);
+}
+
+demoFwdBtn.addEventListener('click', (e) => { e.stopPropagation(); navigate('next'); });
+demoBackBtn.addEventListener('click', (e) => { e.stopPropagation(); navigate('back'); });
+
+function buildSteps() {
+  return [
+    {
+      text: "Welcome to Tack. Here's how it works.",
+      run: async () => { /* intro */ },
+    },
+    {
+      text: 'Type a task, hit Enter',
+      run: async () => {
+        await typeInto(taskInput, 'Reply to Dina about presentation');
+        await wait(280);
+        const id = uid();
+        const target = resolveTargetList(null);  // default list (General)
+        target.tasks.unshift({ id, text: 'Reply to Dina about presentation', important: false, done: false, createdAt: new Date().toISOString(), completedAt: null });
+        demoTaskIds.push(id);
+        taskInput.value = '';
+        save(); render();
+      },
+    },
+    {
+      text: 'Add to any list: end with @[list name]',
+      run: async () => {
+        const secondList = (data.lists[1]?.name || 'work').toLowerCase();
+        await typeInto(taskInput, `Push the build @${secondList}`);
+        await wait(280);
+        const id = uid();
+        const target = resolveTargetList(secondList);
+        target.tasks.unshift({ id, text: 'Push the build', important: false, done: false, createdAt: new Date().toISOString(), completedAt: null });
+        demoTaskIds.push(id);
+        taskInput.value = '';
+        save(); render();
+      },
+    },
+    {
+      text: 'Click the flag to mark important',
+      run: async () => {
+        const id = demoTaskIds[0];
+        const flagEl = listArea.querySelector(`.task[data-id="${id}"] .flag`);
+        if (flagEl) { await fakeClick(flagEl); toggleImportant(id); }
+      },
+    },
+    {
+      text: 'Click the circle to complete',
+      run: async () => {
+        const id = demoTaskIds[0];
+        const checkEl = listArea.querySelector(`.task[data-id="${id}"] .check`);
+        if (checkEl) { await fakeClick(checkEl); toggleTask(id); await wait(420); }
+      },
+    },
+    {
+      text: 'Unpin: Tack hides when you click away',
+      run: async () => {
+        await fakeClick(pinBtn);
+        applyPinned(false);
+        await wait(450);
+        // Simulate the click-away behavior: fade the card so the user
+        // sees what happens when Tack is unpinned and loses focus.
+        card.style.transition = 'opacity 320ms ease';
+        card.style.opacity = '0.15';
+        await wait(900);
+        card.style.opacity = '1';
+        await wait(260);
+        card.style.transition = '';
+      },
+    },
+    {
+      text: 'Pin: stays open while you click around',
+      run: async () => {
+        await fakeClick(pinBtn);
+        applyPinned(true);
+      },
+    },
+    {
+      text: 'Lists and settings live in the hamburger',
+      run: async () => {
+        await fakeClick(burgerBtn);
+        openListsMenu();
+      },
+    },
+    {
+      text: 'Roll up to a slim, quick-add strip',
+      run: async () => { await fakeClick(rollBtn); applyRolled(true); },
+    },
+    {
+      text: 'Click roll again to expand',
+      run: async () => { await fakeClick(rollBtn); applyRolled(false); },
+    },
+    {
+      text: 'Summon Tack anytime with Ctrl+Alt+T',
+      run: async () => { /* end */ },
+    },
+  ];
+}
+
+// Snapshot/restore lets the user step BACK and replay
+function snapshotState() {
+  return {
+    lists: JSON.parse(JSON.stringify(data.lists)),
+    rolled: data.ui.rolledUp,
+    addedIds: [...demoTaskIds],
+    inputVal: taskInput.value,
+  };
+}
+function restoreState(snap) {
+  data.lists = JSON.parse(JSON.stringify(snap.lists));
+  demoTaskIds = [...snap.addedIds];
+  taskInput.value = snap.inputVal;
+  if (data.ui.rolledUp !== snap.rolled) applyRolled(snap.rolled);
+  render();
+}
+
+async function runDemo() {
+  demo.classList.remove('hidden');
+  document.body.classList.add('demo-active');
+  demoActive = true;
+  if (mouseIgnored) { mouseIgnored = false; window.todo.ignoreMouse(false); }
+  demoSkipped = false;
+  demoTaskIds = [];
+  demoSnapshots = [];
+  demoIdx = 0;
+  // Switch to All Lists so both General and Work are visible — the @list step
+  // needs the user to see where the task lands.
+  demoPreviousListId = data.activeListId;
+  data.activeListId = ALL_LISTS;
+  render();
+  const steps = buildSteps();
+
+  while (demoIdx < steps.length) {
+    if (isSkipped()) break;
+    // Close the lists menu if a previous step opened it
+    if (!listsMenu.classList.contains('hidden')) closeListsMenu();
+    const step = steps[demoIdx];
+    setCaptionText(demoIdx + 1, steps.length, step.text);
+    captionShow();
+    setBackEnabled(demoIdx > 0);
+    demoFwdBtn.disabled = true;
+    demoCaption.classList.remove('ready');
+    await wait(260);
+
+    // Save state for the back button
+    demoSnapshots[demoIdx] = snapshotState();
+
+    await step.run();
+    if (isSkipped()) break;
+    await wait(120);
+    captionReady();
+
+    const dir = await waitForNav();
+    if (isSkipped()) break;
+    if (dir === 'back' && demoIdx > 0) {
+      // Restore the state from BEFORE the previous step ran
+      const prev = demoSnapshots[demoIdx - 1];
+      if (prev) restoreState(prev);
+      demoIdx -= 1;
+    } else {
+      demoIdx += 1;
+    }
+  }
+  cleanupDemo();
+}
+
+function cleanupDemo() {
+  // Restore pin to the default (true) in case the demo toggled it
+  if (!data.ui.pinned) applyPinned(true);
+  // Close any open lists menu
+  if (!listsMenu.classList.contains('hidden')) closeListsMenu();
+  // Restore the user's original active list
+  if (demoPreviousListId) {
+    data.activeListId = demoPreviousListId;
+    demoPreviousListId = null;
+  }
+  // Remove every task added during the demo, leaving the user with a clean slate
+  for (const list of data.lists) {
+    list.tasks = list.tasks.filter(t => !demoTaskIds.includes(t.id));
+  }
+  demoTaskIds = [];
+  demoSnapshots = [];
+  taskInput.value = '';
+  demoCaption.classList.remove('show', 'ready');
+  demoCursor.classList.add('hidden');
+  demo.classList.add('hidden');
+  document.body.classList.remove('demo-active');
+  demoActive = false;
+  data.ui.tourSeen = true;
+  save();
+  render();
+}
+
+demoSkipBtn.addEventListener('click', () => { demoSkipped = true; cleanupDemo(); });
+demo.addEventListener('click', (e) => e.stopPropagation());
+
+// === CLICK-THROUGH FOR TRANSPARENT HALO ===
+// The window has a 40px transparent halo around the card for the shadow.
+// Without this, that halo still catches clicks (and feels like a dead zone).
+// On every mousemove, if the cursor isn't over the card (or an open dropdown),
+// flip the window to ignoreMouseEvents so clicks pass through to whatever's behind.
+let mouseIgnored = false;
+let demoActive = false;
+function pointInRect(x, y, r) {
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+document.addEventListener('mousemove', (e) => {
+  if (demoActive) return;                       // demo overlay handles its own
+  const overCard = pointInRect(e.clientX, e.clientY, card.getBoundingClientRect());
+  let overMenu = false;
+  if (!listsMenu.classList.contains('hidden')) {
+    overMenu = pointInRect(e.clientX, e.clientY, listsMenu.getBoundingClientRect());
+  }
+  const ignore = !overCard && !overMenu;
+  if (ignore !== mouseIgnored) {
+    mouseIgnored = ignore;
+    window.todo.ignoreMouse(ignore);
+  }
+});
+
 // === INIT ===
 load().then(() => focusInput());
+// Demo waits for first widget-show (handled in onFocusInput above)

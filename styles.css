@@ -618,3 +618,124 @@ body.all-lists .group + .group {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
+
+/* ===== FIRST-LAUNCH DEMO (scripted actions) ===== */
+.demo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;       /* let widget receive events; caption buttons are clickable */
+  -webkit-app-region: no-drag;
+}
+.demo.hidden { display: none; }
+/* Push the card down so the caption has room above it */
+body.demo-active { padding-top: 60px; transition: padding-top 280ms ease; }
+
+/* Caption pill: STATIC size, centered over the window — ignores skip when positioning */
+.demo-caption {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  width: 352px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0 6px 0 12px;
+  border-radius: 100px;
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.30), 0 2px 6px rgba(0, 0, 0, 0.18);
+  user-select: none;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: auto;
+}
+.demo-caption.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.demo-caption .demo-step {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+.demo-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.demo-nav {
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--paper);
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 120ms ease, opacity 160ms ease;
+}
+.demo-nav svg { display: block; }
+.demo-nav:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); }
+.demo-nav:disabled { opacity: 0.30; cursor: default; }
+.demo-nav.demo-back { margin-left: -8px; }
+.demo-caption.ready .demo-forward { animation: demoPulse 1400ms ease-in-out infinite; }
+@keyframes demoPulse { 50% { background: rgba(255, 255, 255, 0.32); } }
+
+/* Magnifier lens: transparent center with a soft ring — doesn't cover what it's pointing at */
+.demo-cursor {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: top 520ms cubic-bezier(.4,0,.2,1), left 520ms cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.30),
+              0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+.demo-cursor.hidden { display: none; }
+.demo-cursor.click { animation: demoLens 380ms ease; }
+@keyframes demoLens {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  40%      { transform: translate(-50%, -50%) scale(0.80); border-color: #fff; }
+}
+
+/* Skip: small circle X to the right of the centered caption, vertically aligned with it */
+.demo-skip {
+  position: absolute;
+  top: 17px;                              /* (caption 34 - skip 28) / 2 + caption top 14 */
+  left: calc(50% + 184px);                /* caption right edge (176) + 8px gap */
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.80);
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  transition: background 120ms ease, opacity 220ms ease;
+}
+.demo-skip svg { display: block; }
+.demo-skip:hover { background: rgba(0, 0, 0, 0.65); color: #fff; }
+.demo-caption.show + .demo-skip { opacity: 1; }

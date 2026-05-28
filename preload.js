@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('todo', {
   hide: () => ipcRenderer.send('window:hide'),
   pin: (p) => ipcRenderer.send('window:pin', p),
   roll: (r, h) => ipcRenderer.send('window:roll', r, h),
+  ignoreMouse: (ignore) => ipcRenderer.send('window:ignoreMouse', ignore),
   themeCurrent: (t) => ipcRenderer.send('theme:current', t),
   onFocusInput: (cb) => ipcRenderer.on('focus-input', () => cb()),
   onPinnedChanged: (cb) => ipcRenderer.on('pinned-changed', (_, p) => cb(p)),

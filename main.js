@@ -114,9 +114,10 @@ function positionAtCursor() {
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
   const { x, y, width, height } = display.workArea;
-  const [w] = win.getSize();
-  const nx = snap(x + width / 2 - w / 2);
-  const ny = snap(y + height * 0.18);
+  const [w, h] = win.getSize();
+  const nx = snap(x + (width - w) / 2);
+  // Vertically center within the work area (above the taskbar)
+  const ny = snap(y + Math.max(20, (height - h) / 2));
   movingProgrammatically = true;
   win.setPosition(nx, ny);
   anchorPos = [nx, ny];
@@ -218,6 +219,9 @@ app.whenReady().then(() => {
     pinned = !!p;
     dbg('pin set pinned=' + pinned);
     rebuildMenu();
+  });
+  ipcMain.on('window:ignoreMouse', (_, ignore) => {
+    win.setIgnoreMouseEvents(!!ignore, { forward: true });
   });
   ipcMain.on('window:roll', (_, isRolled, customH) => {
     rolled = !!isRolled;
