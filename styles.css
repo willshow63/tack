@@ -20,6 +20,8 @@
                    0 0 28px  rgba(0, 0, 0, 0.03),     /* even halo all sides */
                    inset 0 1px 0 rgba(255,255,255,0.5);
   --check-tick:    #FFFFFF;
+  --menu-shadow:   0 10px 24px rgba(0, 0, 0, 0.14),
+                   0 3px 8px rgba(0, 0, 0, 0.08);
 
   --font: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --radius: 14px;
@@ -47,6 +49,8 @@ body.theme-dark {
                    0 0 28px  rgba(0, 0, 0, 0.18),
                    inset 0 1px 0 rgba(255,255,255,0.04);
   --check-tick:    #FFFFFF;
+  --menu-shadow:   0 10px 28px rgba(0, 0, 0, 0.40),
+                   0 3px 10px rgba(0, 0, 0, 0.24);
 }
 
 /* Smooth color transitions during a theme swap */
@@ -480,7 +484,7 @@ body.all-lists .group + .group {
   background: var(--paper);
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  box-shadow: 0 12px 32px -8px rgba(50,30,10,0.30), 0 4px 8px rgba(50,30,10,0.10);
+  box-shadow: var(--menu-shadow);
   z-index: 10;
   overflow: hidden;
   transform-origin: top right;

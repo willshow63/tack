@@ -79,13 +79,34 @@ function createWindow() {
   });
   win.loadFile('index.html');
   win.on('blur', () => {
-    if (!pinned && !rolled && win.isVisible()) hideWindow();
+    dbg('blur pinned=' + pinned + ' rolled=' + rolled + ' visible=' + win.isVisible());
+    if (!pinned && win.isVisible()) hideWindow();   // ignore rolled state — pin alone controls
   });
   win.on('close', (e) => { e.preventDefault(); hideWindow(); });
   win.on('moved', () => {
     if (movingProgrammatically) return;
     const [x, y] = win.getPosition();
-    anchorPos = [x, y];     // user dragged: trust the new spot
+    const [w, h] = win.getSize();
+    // Use the display containing the window's center, so multi-monitor drags
+    // smoothly transfer the clamp to the new monitor.
+    const center = { x: Math.round(x + w / 2), y: Math.round(y + h / 2) };
+    const wa = screen.getDisplayNearestPoint(center).workArea;
+    const HEADER_H = 46;
+    const VIS = 80;                                         // min visible horizontally
+    const maxY = wa.y + wa.height - HEADER_H - 4;           // header bottom above taskbar
+    const minY = wa.y;
+    const minX = wa.x - w + VIS;
+    const maxX = wa.x + wa.width - VIS;
+    const newX = Math.min(Math.max(x, minX), maxX);
+    const newY = Math.min(Math.max(y, minY), maxY);
+    if (newX !== x || newY !== y) {
+      movingProgrammatically = true;
+      win.setPosition(snap(newX), snap(newY));
+      anchorPos = [snap(newX), snap(newY)];
+      setTimeout(() => { movingProgrammatically = false; }, 80);
+    } else {
+      anchorPos = [x, y];
+    }
   });
 }
 
@@ -195,6 +216,7 @@ app.whenReady().then(() => {
   ipcMain.on('window:hide', () => hideWindow());
   ipcMain.on('window:pin',  (_, p) => {
     pinned = !!p;
+    dbg('pin set pinned=' + pinned);
     rebuildMenu();
   });
   ipcMain.on('window:roll', (_, isRolled, customH) => {
