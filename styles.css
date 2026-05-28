@@ -478,8 +478,8 @@ body.all-lists .group + .group {
    (which starts at viewport 0,0, NOT inside the 40px padding) */
 .lists-menu {
   position: absolute;
-  top: calc(var(--header-h) - 4px);          /* header height, tucked 4px under header bottom */
-  right: calc(40px + 14px);                   /* body padding right + header padding-right */
+  top: calc(var(--body-top-pad, 0px) + var(--header-h) - 4px);    /* header bottom (accounting for demo top gutter) */
+  right: calc(var(--side-pad, 40px) + 14px);  /* body padding right + header padding-right */
   width: 220px;
   background: var(--paper);
   border: 1px solid var(--line-strong);
@@ -605,6 +605,53 @@ body.all-lists .group + .group {
 .toggle.on { background: var(--coral); }
 .toggle.on::after { transform: translateX(13px); }
 
+/* Segmented picker (Theme: Light / Dark) */
+.setting-row.seg-row:hover { background: transparent; }
+.seg {
+  display: inline-flex;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.seg-btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-mute);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+  line-height: 1.4;
+}
+.seg-btn:hover { color: var(--ink); }
+.seg-btn.on {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+body.theme-dark .seg-btn.on {
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Record mode: leave the body transparent so the window's shadow halo
+   shows whatever's actually on the desktop behind Tack -- the recording
+   script minimizes other windows so that's clean wallpaper. Just widen
+   the side padding to match main.js's wider record-mode WIN_W. */
+body.record {
+  padding-left: 64px;
+  padding-right: 64px;
+  --side-pad: 64px;
+}
+:root { --side-pad: 40px; }
+
 /* ANIMATIONS */
 @keyframes taskEnter {
   from { opacity: 0; transform: translateY(-3px); }
@@ -629,7 +676,8 @@ body.all-lists .group + .group {
 }
 .demo.hidden { display: none; }
 /* Push the card down so the caption has room above it */
-body.demo-active { padding-top: 60px; transition: padding-top 280ms ease; }
+body.demo-active { padding-top: 60px; transition: padding-top 280ms ease; --body-top-pad: 60px; }
+:root { --body-top-pad: 0px; }
 
 /* Caption pill: STATIC size, centered over the window — ignores skip when positioning */
 .demo-caption {
@@ -694,26 +742,120 @@ body.demo-active { padding-top: 60px; transition: padding-top 280ms ease; }
 .demo-caption.ready .demo-forward { animation: demoPulse 1400ms ease-in-out infinite; }
 @keyframes demoPulse { 50% { background: rgba(255, 255, 255, 0.32); } }
 
-/* Magnifier lens: transparent center with a soft ring — doesn't cover what it's pointing at */
+/* Slightly-larger-than-normal Windows arrow cursor for the demo.
+   White fill, thin black outline, soft shadow -- looks like a normal
+   pointer, just easier to follow at video resolution. */
 .demo-cursor {
   position: absolute;
-  width: 40px;
-  height: 40px;
-  background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  border-radius: 50%;
+  width: 22px;
+  height: 26px;
   pointer-events: none;
-  transform: translate(-50%, -50%);
+  /* The tip of the arrow is at SVG point (3, 2); shift the box so the tip
+     lands on the (left, top) coordinate set by JS (the click target). */
+  transform: translate(-3px, -2px);
+  transform-origin: 3px 2px;
   transition: top 520ms cubic-bezier(.4,0,.2,1), left 520ms cubic-bezier(.4,0,.2,1);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.30),
-              0 4px 14px rgba(0, 0, 0, 0.25);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 32'><path d='M3 2 L24 18 L14 19 L20 29 L16 31 L10 21 L3 27 Z' fill='%23FFFFFF' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
   z-index: 2;
 }
 .demo-cursor.hidden { display: none; }
+
+/* Faux Win11 taskbar shown for the final demo step. Sits at the bottom
+   of the (record-mode) window and covers the area where a real taskbar
+   would be on the user's screen. */
+.demo-tray-mock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+  pointer-events: none;
+  font-family: 'Segoe UI', Inter, sans-serif;
+}
+.demo-tray-mock.hidden { display: none; }
+.tm-bar {
+  height: 52px;
+  background: rgba(20, 22, 28, 0.94);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.35);
+}
+.tm-icons-left, .tm-icons-right { display: flex; align-items: center; gap: 8px; }
+.tm-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  position: relative;
+}
+.tm-search::after { content: '🔎'; }
+.tm-files::after { content: '📁'; }
+.tm-edge::after { content: '🌐'; }
+.tm-tray-wifi::after { content: '📶'; font-size: 12px; }
+.tm-tray-vol::after { content: '🔊'; font-size: 12px; }
+.tm-tray-chev { color: rgba(255, 255, 255, 0.55); font-size: 16px; }
+.tm-tray-tack {
+  background: rgba(10, 132, 255, 0.18);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.85), 0 0 22px 4px rgba(10, 132, 255, 0.45);
+}
+.tm-tray-tack img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.tm-tack-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 10px;
+  border: 2px solid #0A84FF;
+  opacity: 0;
+  animation: tmPulse 1500ms ease-out infinite;
+  pointer-events: none;
+}
+@keyframes tmPulse {
+  0%   { transform: scale(0.85); opacity: 0.95; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+.tm-clock {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: right;
+  padding: 0 8px;
+}
+.tm-callout {
+  position: absolute;
+  bottom: 60px;
+  right: 110px;
+  background: #0A84FF;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  animation: tmCalloutBob 1400ms ease-in-out infinite alternate;
+}
+@keyframes tmCalloutBob {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-4px); }
+}
 .demo-cursor.click { animation: demoLens 380ms ease; }
 @keyframes demoLens {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  40%      { transform: translate(-50%, -50%) scale(0.80); border-color: #fff; }
+  0%, 100% { transform: translate(-3px, -2px) scale(1); }
+  40%      { transform: translate(-3px, -2px) scale(0.75); }
 }
 
 /* Skip: small circle X to the right of the centered caption, vertically aligned with it */
@@ -739,3 +881,20 @@ body.demo-active { padding-top: 60px; transition: padding-top 280ms ease; }
 .demo-skip svg { display: block; }
 .demo-skip:hover { background: rgba(0, 0, 0, 0.65); color: #fff; }
 .demo-caption.show + .demo-skip { opacity: 1; }
+
+/* Demo cursor doesn't trigger real :hover. Mirror the relevant hover
+   styles on .demo-hover so the demo shows the same affordances. */
+.hbtn.demo-hover { color: var(--ink-soft); background: var(--paper-2); }
+.task.demo-hover { background: var(--paper-2); }
+.task.demo-hover .check { border-color: var(--ink); }
+.check.demo-hover {
+  background: rgba(233, 75, 60, 0.12);
+  border-color: var(--coral);
+  transform: scale(1.1);
+}
+.task.demo-hover .flag { opacity: 1; }
+.flag.demo-hover { color: var(--flag); transform: scale(1.15); }
+.task.demo-hover .del { opacity: 1; }
+.del.demo-hover { color: var(--flag); transform: scale(1.2); }
+.list-row.demo-hover { background: var(--paper-2); }
+.lm-action.demo-hover { background: var(--paper-2); color: var(--ink); }

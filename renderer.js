@@ -10,7 +10,7 @@ const listNameEl  = $('#listName');
 const pinBtn          = $('#pinBtn');
 const rollBtn         = $('#rollBtn');
 const burgerBtn       = $('#burgerBtn');
-const toggleTheme     = $('#toggleTheme');
+const themePicker     = $('#themePicker');
 const toggleShowDone  = $('#toggleShowCompleted');
 const toggleShowTime  = $('#toggleShowTime');
 const listsMenu   = $('#listsMenu');
@@ -430,11 +430,10 @@ function applyRolled(r) {
   document.body.classList.toggle('rolled', data.ui.rolledUp);
   rollBtn.title = data.ui.rolledUp ? 'Roll down' : 'Roll up (Ctrl+R)';
   if (data.ui.rolledUp) {
-    // Account for the 60px top padding the demo adds; otherwise the header
-    // and input get clipped because we'd be sizing as if no caption existed.
+    // Just the card + body bottom padding; the demo gutter (if any) is
+    // added on top by the main process via demoExtraTop.
     requestAnimationFrame(() => {
-      const demoPad = document.body.classList.contains('demo-active') ? 60 : 0;
-      const h = Math.ceil(card.offsetHeight) + 40 + demoPad;
+      const h = Math.ceil(card.offsetHeight) + 40;
       window.todo.roll(true, h);
     });
   } else {
@@ -451,7 +450,11 @@ function applyTheme(t, { animate = true } = {}) {
     setTimeout(() => document.body.classList.remove('theme-transition'), 320);
   }
   document.body.classList.toggle('theme-dark', isDark);
-  toggleTheme.classList.toggle('on', isDark);
+  if (themePicker) {
+    for (const b of themePicker.querySelectorAll('.seg-btn')) {
+      b.classList.toggle('on', b.dataset.theme === (isDark ? 'dark' : 'light'));
+    }
+  }
   if (data) {
     window.todo.themeCurrent(data.ui.theme);  // keep tray menu in sync
     save();
@@ -673,10 +676,17 @@ burgerBtn.addEventListener('click', (e) => {
 
 listsMenu.addEventListener('click', (e) => {
   e.stopPropagation();
+  const segBtn = e.target.closest('.seg-btn');
+  if (segBtn) {
+    const t = segBtn.dataset.theme;
+    if (t === 'light' || t === 'dark') applyTheme(t);
+    return;
+  }
   const settingRow = e.target.closest('.setting-row');
   if (settingRow) {
     const which = settingRow.dataset.setting;
     if (which === 'theme') {
+      // Clicks on the row chrome (not a seg button) — toggle between themes
       applyTheme(data.ui.theme === 'dark' ? 'light' : 'dark');
     } else if (which === 'showCompleted') {
       applyShowCompleted(!(data.ui.showCompleted !== false));
@@ -735,6 +745,7 @@ const demoBackBtn = $('#demoBack');
 const demoFwdBtn  = $('#demoForward');
 let demoSkipped = false;
 let demoTaskIds = [];
+let demoTypedTaskId = null;    // the task the demo "types in"; flag/complete steps target this one
 let demoSnapshots = [];        // tasks snapshot before each step's action
 let demoNavResolver = null;
 let demoIdx = 0;
@@ -742,6 +753,13 @@ let demoPreviousListId = null;   // saved so we can restore the user's view afte
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const isSkipped = () => demoSkipped;
+
+// Auto-record mode: main passes '#auto' so the demo plays through itself
+// (no user clicks) for an MP4 capture. Each step lingers ~1.7s after its
+// action finishes so the viewer can read the caption.
+const AUTO_DEMO = window.location.hash === '#auto';
+const AUTO_STEP_DELAY = 1700;
+if (AUTO_DEMO) document.body.classList.add('record');
 
 function setCaptionText(stepNum, total, text) {
   demoStepEl.textContent = `${stepNum} / ${total}`;
@@ -760,6 +778,13 @@ function setBackEnabled(enabled) {
 
 async function moveCursorTo(el) {
   if (!el || isSkipped()) return;
+  // Mirror :hover state for the target and its task ancestor so users see
+  // the same affordance (flag fades in, button bg lights up, etc.) they'd
+  // get with a real mouse pointer.
+  document.querySelectorAll('.demo-hover').forEach(e => e.classList.remove('demo-hover'));
+  el.classList.add('demo-hover');
+  const task = el.closest && el.closest('.task');
+  if (task) task.classList.add('demo-hover');
   const r = el.getBoundingClientRect();
   demoCursor.classList.remove('hidden');
   demoCursor.style.left = `${r.left + r.width / 2}px`;
@@ -807,12 +832,13 @@ function buildSteps() {
     {
       text: 'Type a task, hit Enter',
       run: async () => {
-        await typeInto(taskInput, 'Reply to Dina about presentation');
+        await typeInto(taskInput, 'Pick up groceries');
         await wait(280);
         const id = uid();
         const target = resolveTargetList(null);  // default list (General)
-        target.tasks.unshift({ id, text: 'Reply to Dina about presentation', important: false, done: false, createdAt: new Date().toISOString(), completedAt: null });
+        target.tasks.unshift({ id, text: 'Pick up groceries', important: false, done: false, createdAt: new Date().toISOString(), completedAt: null });
         demoTaskIds.push(id);
+        demoTypedTaskId = id;
         taskInput.value = '';
         save(); render();
       },
@@ -821,28 +847,49 @@ function buildSteps() {
       text: 'Add to any list: end with @[list name]',
       run: async () => {
         const secondList = (data.lists[1]?.name || 'work').toLowerCase();
-        await typeInto(taskInput, `Push the build @${secondList}`);
+        await typeInto(taskInput, `Order printer ink @${secondList}`);
         await wait(280);
         const id = uid();
         const target = resolveTargetList(secondList);
-        target.tasks.unshift({ id, text: 'Push the build', important: false, done: false, createdAt: new Date().toISOString(), completedAt: null });
+        target.tasks.unshift({ id, text: 'Order printer ink', important: false, done: false, createdAt: new Date().toISOString(), completedAt: null });
         demoTaskIds.push(id);
         taskInput.value = '';
         save(); render();
       },
     },
     {
+      text: 'Pick a list from the menu to focus on it',
+      run: async () => {
+        await fakeClick(burgerBtn);
+        openListsMenu();
+        await wait(450);
+        const generalRow = listsMenuItems.querySelector('.list-row[data-id="default"]');
+        if (generalRow) await fakeClick(generalRow);
+        switchList('default');
+        closeListsMenu();
+        await wait(280);
+      },
+    },
+    {
       text: 'Click the flag to mark important',
       run: async () => {
-        const id = demoTaskIds[0];
-        const flagEl = listArea.querySelector(`.task[data-id="${id}"] .flag`);
+        const id = demoTypedTaskId;
+        const taskEl = listArea.querySelector(`.task[data-id="${id}"]`);
+        const flagEl = taskEl && taskEl.querySelector('.flag');
+        if (taskEl) {
+          // Linger on the task row first so the gray flag fades in,
+          // then move to the flag itself (it goes red), then click.
+          const textEl = taskEl.querySelector('.text');
+          await moveCursorTo(textEl || taskEl);
+          await wait(420);
+        }
         if (flagEl) { await fakeClick(flagEl); toggleImportant(id); }
       },
     },
     {
       text: 'Click the circle to complete',
       run: async () => {
-        const id = demoTaskIds[0];
+        const id = demoTypedTaskId;
         const checkEl = listArea.querySelector(`.task[data-id="${id}"] .check`);
         if (checkEl) { await fakeClick(checkEl); toggleTask(id); await wait(420); }
       },
@@ -913,13 +960,24 @@ async function runDemo() {
   demo.classList.remove('hidden');
   document.body.classList.add('demo-active');
   demoActive = true;
+  window.todo.demoExtraTop(60);
   if (mouseIgnored) { mouseIgnored = false; window.todo.ignoreMouse(false); }
   demoSkipped = false;
   demoTaskIds = [];
+  demoTypedTaskId = null;
   demoSnapshots = [];
   demoIdx = 0;
-  // Switch to All Lists so both General and Work are visible — the @list step
-  // needs the user to see where the task lands.
+  // Seed General with a few items so when we later switch to General view
+  // it looks like a real, lived-in list rather than a single new task.
+  const general = data.lists.find(l => l.id === 'default') || data.lists[0];
+  if (general) {
+    const seeds = ['Schedule oil change', 'Pay water bill', 'Mow the lawn'];
+    for (const text of seeds) {
+      const id = uid();
+      general.tasks.unshift({ id, text, important: false, done: false, createdAt: new Date().toISOString(), completedAt: null });
+      demoTaskIds.push(id);
+    }
+  }
   demoPreviousListId = data.activeListId;
   data.activeListId = ALL_LISTS;
   render();
@@ -945,6 +1003,7 @@ async function runDemo() {
     await wait(120);
     captionReady();
 
+    if (AUTO_DEMO) setTimeout(() => navigate('next'), AUTO_STEP_DELAY);
     const dir = await waitForNav();
     if (isSkipped()) break;
     if (dir === 'back' && demoIdx > 0) {
@@ -955,6 +1014,13 @@ async function runDemo() {
     } else {
       demoIdx += 1;
     }
+  }
+  if (AUTO_DEMO) {
+    // Hold the final caption on-screen so the recording ends cleanly
+    // rather than ripping the overlay away in the last frames.
+    await wait(2200);
+    window.todo.demoDone();
+    return;
   }
   cleanupDemo();
 }
@@ -981,6 +1047,7 @@ function cleanupDemo() {
   demo.classList.add('hidden');
   document.body.classList.remove('demo-active');
   demoActive = false;
+  window.todo.demoExtraTop(0);  // shrink window back; card stays put
   data.ui.tourSeen = true;
   save();
   render();

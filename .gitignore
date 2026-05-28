@@ -1,6 +1,2 @@
 node_modules/
 dist/
-tasks.json
-tasks.json.tmp
-*.log
-.DS_Store

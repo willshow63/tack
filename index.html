@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>To-Do</title>
+  <title>Tack</title>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -104,8 +104,7 @@
     <div class="lists-menu-items" id="listsMenuItems"></div>
     <div class="lists-menu-actions">
       <button class="lm-action" data-action="new">
-        <svg width="11" height="11"><use href="#i-plus"/></svg>
-        <span>List</span>
+        <span>New List</span>
       </button>
       <button class="lm-action" data-action="rename">Rename</button>
       <button class="lm-action danger" data-action="delete">Delete</button>
@@ -115,9 +114,12 @@
     </div>
     <div class="lm-settings">
       <div class="lm-settings-title">Settings</div>
-      <div class="setting-row" data-setting="theme">
-        <span class="setting-label">Dark mode</span>
-        <div class="toggle" id="toggleTheme"></div>
+      <div class="setting-row seg-row" data-setting="theme">
+        <span class="setting-label">Theme</span>
+        <div class="seg" id="themePicker">
+          <button class="seg-btn" data-theme="light">Light</button>
+          <button class="seg-btn" data-theme="dark">Dark</button>
+        </div>
       </div>
       <div class="setting-row" data-setting="showCompleted">
         <span class="setting-label">Show completed</span>
