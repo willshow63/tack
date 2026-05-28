@@ -18,9 +18,9 @@ function getDataFile() {
 }
 
 const HOTKEY  = 'CommandOrControl+Alt+T';
-const WIN_W   = 380;
-const H_FULL  = 540;
-const H_ROLL  = 96;
+const WIN_W   = 414;     // 10% narrower
+const H_FULL  = 600;
+const H_ROLL  = 120;
 
 let win = null;
 let tray = null;
@@ -34,6 +34,13 @@ let movingProgrammatically = false;
 function loadFile() {
   try { return JSON.parse(fs.readFileSync(getDataFile(), 'utf8')); }
   catch { return null; }
+}
+
+function dbg(msg) {
+  try {
+    const f = path.join(app.getPath('userData'), 'debug.log');
+    fs.appendFileSync(f, new Date().toISOString().slice(11, 23) + ' ' + msg + '\n');
+  } catch {}
 }
 
 function saveFile(data) {
@@ -55,11 +62,14 @@ function createWindow() {
     minHeight: 1,
     frame: false,
     transparent: true,
-    resizable: true,            // programmatic resize requires true on Windows
+    resizable: false,           // user can't drag-resize; we toggle on briefly during applyHeight
+    maximizable: false,         // disables Aero Snap maximize-on-drag-to-top
+    fullscreenable: false,
     skipTaskbar: true,
     show: false,
     alwaysOnTop: true,
-    hasShadow: true,
+    hasShadow: false,           // CSS provides the shadow; OS shadow can interfere with snap
+    thickFrame: false,
     backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(ROOT, 'preload.js'),
@@ -77,10 +87,6 @@ function createWindow() {
     const [x, y] = win.getPosition();
     anchorPos = [x, y];     // user dragged: trust the new spot
   });
-  // resizable:true is needed so setSize works on Windows, but block user-initiated resizes
-  win.on('will-resize', (e) => {
-    if (!movingProgrammatically) e.preventDefault();
-  });
 }
 
 function positionAtCursor() {
@@ -88,45 +94,32 @@ function positionAtCursor() {
   const display = screen.getDisplayNearestPoint(cursor);
   const { x, y, width, height } = display.workArea;
   const [w] = win.getSize();
-  const nx = Math.round(x + width / 2 - w / 2);
-  const ny = Math.round(y + height * 0.18);
+  const nx = snap(x + width / 2 - w / 2);
+  const ny = snap(y + height * 0.18);
   movingProgrammatically = true;
   win.setPosition(nx, ny);
-  anchorPos = [nx, ny];        // re-anchor on every fresh show
+  anchorPos = [nx, ny];
   setTimeout(() => { movingProgrammatically = false; }, 80);
 }
 
-let resizeFrame = null;
+// Snap to even logical pixels so the physical position lands on an integer
+// at 1.5× DPI, preventing setBounds from drifting by 1 each call.
+const snap = (n) => Math.round(n / 2) * 2;
+
 function applyHeight(h) {
-  if (!anchorPos) {
-    const [x, y] = win.getPosition();
-    anchorPos = [x, y];
-  }
-  if (resizeFrame) clearTimeout(resizeFrame);
-  const startH = win.getSize()[1];
-  if (startH === h) return;
-  const startTime = Date.now();
-  const duration = 150;
+  const b = win.getBounds();
+  if (b.height === h) return;
+  const lockedX = snap(b.x);
+  const lockedY = snap(b.y);
   movingProgrammatically = true;
-  const step = () => {
-    const t = Math.min((Date.now() - startTime) / duration, 1);
-    const eased = 1 - Math.pow(1 - t, 3);
-    const curH = Math.max(1, Math.round(startH + (h - startH) * eased));
-    // setBounds is atomic: width + height + position update in one call,
-    // so Windows can't briefly flash a different width
-    win.setBounds({
-      x: anchorPos[0],
-      y: anchorPos[1],
-      width: WIN_W,
-      height: curH,
-    });
-    if (t < 1) resizeFrame = setTimeout(step, 16);
-    else {
-      resizeFrame = null;
-      setTimeout(() => { movingProgrammatically = false; }, 40);
-    }
-  };
-  step();
+  win.setResizable(true);
+  win.setBounds({ x: lockedX, y: lockedY, width: WIN_W, height: h });
+  const fb = win.getBounds();
+  dbg('applyHeight h=' + h + ' end x=' + fb.x + ' y=' + fb.y + ' w=' + fb.width + ' h=' + fb.height);
+  setTimeout(() => {
+    movingProgrammatically = false;
+    win.setResizable(false);
+  }, 60);
 }
 
 function showWindow(firstShow = false) {

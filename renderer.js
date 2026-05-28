@@ -12,6 +12,7 @@ const rollBtn         = $('#rollBtn');
 const burgerBtn       = $('#burgerBtn');
 const toggleTheme     = $('#toggleTheme');
 const toggleShowDone  = $('#toggleShowCompleted');
+const toggleShowTime  = $('#toggleShowTime');
 const listsMenu   = $('#listsMenu');
 const listsMenuItems = $('#listsMenuItems');
 const lmInputWrap = $('#lmInputWrap');
@@ -25,22 +26,31 @@ let menuExpandedWindow = false;  // window was grown to fit dropdown while rolle
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
-// === DATE ===
+// === DATE + TIME ===
 function refreshDate() {
+  if (!dateLabel) return;
   const d = new Date();
-  dateLabel.textContent = d.toLocaleDateString(undefined, {
-    weekday: 'long', month: 'long', day: 'numeric'
-  });
+  const showTime = data?.ui?.showTime !== false;
+  const date = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  if (showTime) {
+    const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    dateLabel.textContent = `${date} · ${time}`;
+  } else {
+    dateLabel.textContent = date;
+  }
 }
 refreshDate();
-setInterval(refreshDate, 60_000);
+setInterval(refreshDate, 30_000);
 
 // === LOAD + MIGRATE ===
 function migrate(raw) {
   const fresh = {
-    lists: [{ id: 'default', name: 'Main', tasks: [] }],
+    lists: [
+      { id: 'default', name: 'General', tasks: [] },
+      { id: 'work',    name: 'Work',    tasks: [] },
+    ],
     activeListId: 'default',
-    ui: { rolledUp: false, pinned: true, theme: 'dark', showCompleted: true, collapsedGroups: {} },
+    ui: { rolledUp: false, pinned: true, theme: 'dark', showCompleted: true, showTime: true, collapsedGroups: {} },
   };
   if (!raw) return fresh;
   if (Array.isArray(raw)) {
@@ -56,6 +66,7 @@ function migrate(raw) {
         pinned: raw.ui?.pinned !== false,
         theme: raw.ui?.theme === 'light' ? 'light' : 'dark',
         showCompleted: raw.ui?.showCompleted !== false,
+        showTime: raw.ui?.showTime !== false,
         collapsedGroups: raw.ui?.collapsedGroups || {},
       },
     };
@@ -67,6 +78,7 @@ function migrate(raw) {
     pinned: raw.ui?.pinned !== false,
     theme: raw.ui?.theme === 'light' ? 'light' : 'dark',
     showCompleted: raw.ui?.showCompleted !== false,
+        showTime: raw.ui?.showTime !== false,
     collapsedGroups: { default: raw.ui?.collapsedGroups || ['done'] },
   };
   return fresh;
@@ -75,6 +87,10 @@ function migrate(raw) {
 async function load() {
   const raw = await window.todo.load();
   data = migrate(raw);
+  // One-time rename: legacy 'Main' default list -> 'General'
+  for (const l of data.lists) {
+    if (l.id === 'default' && l.name === 'Main') l.name = 'General';
+  }
   // Ensure each list has collapsedGroups initialized
   for (const l of data.lists) {
     if (!data.ui.collapsedGroups[l.id]) data.ui.collapsedGroups[l.id] = ['done'];
@@ -83,6 +99,7 @@ async function load() {
   applyPinned(data.ui.pinned);
   applyRolled(data.ui.rolledUp);
   toggleShowDone.classList.toggle('on', data.ui.showCompleted !== false);
+  toggleShowTime.classList.toggle('on', data.ui.showTime !== false);
   render();
   // Let main know the current theme so the tray menu checkbox is in sync
   window.todo.themeCurrent(data.ui.theme);
@@ -156,7 +173,29 @@ function parseInput(raw) {
   let text = raw.trim();
   let important = false;
   if (text.startsWith('!')) { important = true; text = text.replace(/^!+\s*/, ''); }
-  return { text: text.trim(), important };
+  // Trailing @listname shorthand routes the task to that list
+  let listName = null;
+  const m = text.match(/\s+@([A-Za-z0-9_-]+)\s*$/);
+  if (m) {
+    listName = m[1];
+    text = text.slice(0, m.index).trim();
+  }
+  return { text: text.trim(), important, listName };
+}
+
+function resolveTargetList(listName) {
+  if (listName) {
+    // Case-insensitive match against existing lists
+    const existing = data.lists.find(l => l.name.toLowerCase() === listName.toLowerCase());
+    if (existing) return existing;
+    // No match — create a new list with that name
+    const id = uid();
+    data.lists.push({ id, name: listName, tasks: [] });
+    data.ui.collapsedGroups[id] = ['done'];
+    return data.lists[data.lists.length - 1];
+  }
+  // No @listname — fall back to the General/default list (or first list)
+  return data.lists.find(l => l.id === 'default') || data.lists[0];
 }
 
 const escapeHTML = (s) => s.replace(/[&<>"']/g,
@@ -183,7 +222,6 @@ function buildGroups() {
   const showDone = data.ui.showCompleted !== false;
 
   if (isAllLists()) {
-    // Each list becomes its own group; done items pooled at the bottom
     const groups = [];
     const allDone = [];
     for (const list of data.lists) {
@@ -197,7 +235,6 @@ function buildGroups() {
     return groups;
   }
 
-  // Single list: active flat, done collapsible
   const tasks = activeTasks();
   const active = tasks.filter(t => !t.done);
   const done   = tasks.filter(t =>  t.done);
@@ -219,14 +256,18 @@ function visibleTasks() {
 
 // === RENDER ===
 function render() {
+  document.body.classList.toggle('all-lists', isAllLists());
+  taskInput.disabled = false;
   if (isAllLists()) {
     listNameEl.textContent = 'All Lists';
-    taskInput.disabled = true;
-    taskInput.placeholder = 'Choose a list to add tasks';
+    // Show the @list shortcut hint using whatever the user's 2nd list is
+    const example = data.lists[1]?.name?.toLowerCase();
+    taskInput.placeholder = example
+      ? `What needs doing?  e.g. Pay bills @${example}`
+      : 'What needs doing?';
   } else {
     const al = activeList();
     listNameEl.textContent = al ? al.name : '—';
-    taskInput.disabled = false;
     taskInput.placeholder = 'What needs doing?';
   }
 
@@ -287,10 +328,13 @@ function taskHTML(t) {
 
 // === ACTIONS ===
 function addTask(raw) {
-  if (isAllLists()) return;             // input is disabled in All Lists view
-  const { text, important } = parseInput(raw);
+  const { text, important, listName } = parseInput(raw);
   if (!text) return;
-  activeList().tasks.unshift({
+  // In All Lists view, route via @listname; otherwise use current list (unless @listname specified)
+  const target = isAllLists()
+    ? resolveTargetList(listName)
+    : (listName ? resolveTargetList(listName) : activeList());
+  target.tasks.unshift({
     id: uid(),
     text,
     important,
@@ -384,10 +428,9 @@ function applyRolled(r) {
   document.body.classList.toggle('rolled', data.ui.rolledUp);
   rollBtn.title = data.ui.rolledUp ? 'Roll down' : 'Roll up (Ctrl+R)';
   if (data.ui.rolledUp) {
-    // CSS has collapsed list+foot; card now auto-fits header+input only.
-    // body padding is 16 each side, so window = card content + 32
+    // body padding now 0 top + 40 bottom; window = card content + 40
     requestAnimationFrame(() => {
-      const h = Math.ceil(card.offsetHeight) + 32;
+      const h = Math.ceil(card.offsetHeight) + 40;
       window.todo.roll(true, h);
     });
   } else {
@@ -416,6 +459,13 @@ function applyShowCompleted(show) {
   toggleShowDone.classList.toggle('on', !!show);
   save();
   render();
+}
+
+function applyShowTime(show) {
+  data.ui.showTime = !!show;
+  toggleShowTime.classList.toggle('on', !!show);
+  refreshDate();
+  save();
 }
 
 function applyPinned(p) {
@@ -607,7 +657,7 @@ burgerBtn.addEventListener('click', (e) => {
       requestAnimationFrame(() => {
         const cardH = card.offsetHeight;
         const dropH = listsMenu.offsetHeight;
-        const winH  = cardH + dropH + 32 + 8;  // 16+16 body padding + small gap
+        const winH  = cardH + dropH + 40 + 8;  // 0 top + 40 bottom body padding + small gap
         menuExpandedWindow = true;
         window.todo.roll(true, winH);
       });
@@ -626,6 +676,8 @@ listsMenu.addEventListener('click', (e) => {
       applyTheme(data.ui.theme === 'dark' ? 'light' : 'dark');
     } else if (which === 'showCompleted') {
       applyShowCompleted(!(data.ui.showCompleted !== false));
+    } else if (which === 'showTime') {
+      applyShowTime(!(data.ui.showTime !== false));
     }
     return;
   }
