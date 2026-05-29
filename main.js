@@ -164,12 +164,13 @@ function createWindow() {
     const newY = Math.min(Math.max(y, minY), maxY);
     if (newX !== x || newY !== y) {
       movingProgrammatically = true;
-      win.setPosition(snap(newX), snap(newY));
-      anchorPos = [snap(newX), snap(newY)];
+      win.setPosition(newX, newY);
+      anchorPos = [newX, newY];
       setTimeout(() => { movingProgrammatically = false; }, 80);
     } else {
       anchorPos = [x, y];
     }
+    dbg('moved in x=' + x + ' y=' + y + ' newX=' + newX + ' newY=' + newY + ' anchorPos=' + anchorPos.join(','));
   });
 }
 
@@ -203,13 +204,19 @@ function applyHeight(h, force = false) {
   const target = h + demoExtraTop;
   const b = win.getBounds();
   if (!force && b.height === target) return;
-  const lockedX = snap(b.x);
-  const lockedY = snap(b.y);
+  // Pass b.x / b.y through directly. snap() to even logical pixels used
+  // to be applied here as a guard against per-roll 1-px drift at
+  // fractional DPI, but it caused a worse bug: after the user drags the
+  // window to an odd logical pixel (common at 1.25x DPI), the next roll
+  // shifted the window by a pixel. setBounds(x) -> getBounds().x is
+  // stable on its own in current Electron, so just preserve the position.
   movingProgrammatically = true;
   win.setResizable(true);
-  win.setBounds({ x: lockedX, y: lockedY, width: WIN_W, height: target });
+  win.setBounds({ x: b.x, y: b.y, width: WIN_W, height: target });
   const fb = win.getBounds();
-  dbg('applyHeight h=' + h + ' extra=' + demoExtraTop + ' force=' + force + ' end x=' + fb.x + ' y=' + fb.y + ' w=' + fb.width + ' h=' + fb.height);
+  dbg('applyHeight h=' + h + ' extra=' + demoExtraTop + ' force=' + force +
+      ' in x=' + b.x + ' y=' + b.y +
+      ' out x=' + fb.x + ' y=' + fb.y + ' w=' + fb.width + ' h=' + fb.height);
   setTimeout(() => {
     movingProgrammatically = false;
     win.setResizable(false);
@@ -224,14 +231,15 @@ function setDemoExtraTop(top) {
   if (top === demoExtraTop) return;
   const delta = top - demoExtraTop;
   const b = win.getBounds();
-  const newY = snap(b.y - delta);
+  const newY = b.y - delta;
   const newH = b.height + delta;
   demoExtraTop = top;
   movingProgrammatically = true;
   win.setResizable(true);
   // Pin width to WIN_W explicitly -- using b.width can drift by 1-2 px
-  // due to OS rounding between getBounds and setBounds.
-  win.setBounds({ x: snap(b.x), y: newY, width: WIN_W, height: newH });
+  // due to OS rounding between getBounds and setBounds. Pass x/y
+  // unshifted so the card stays exactly where it was.
+  win.setBounds({ x: b.x, y: newY, width: WIN_W, height: newH });
   setTimeout(() => {
     movingProgrammatically = false;
     win.setResizable(false);
