@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('todo', {
+  platform: process.platform,
   load: () => ipcRenderer.invoke('data:load'),
   save: (data) => ipcRenderer.send('data:save', data),
   hide: () => ipcRenderer.send('window:hide'),

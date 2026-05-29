@@ -4,7 +4,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 
 const ROOT = __dirname;
-const ICON_FILE = path.join(ROOT, 'icon.png');
+// macOS menu bar wants a "Template" image (black-on-transparent that the
+// system tints to match the menu bar's light/dark theme). Windows uses
+// the full-color icon for its tray.
+const ICON_FILE = path.join(
+  ROOT,
+  process.platform === 'darwin' ? 'iconTemplate.png' : 'icon.png'
+);
 
 // Demo-record mode: --demo-record [outDir]
 // - Uses an isolated userData dir so the user's real tasks/prefs are untouched
@@ -76,17 +82,20 @@ function savePrefs(p) {
   try { fs.writeFileSync(getPrefsFile(), JSON.stringify(p, null, 2)); } catch {}
 }
 
-// Reconcile the Windows "Run at login" registry entry with our stored
-// preference on every launch. Default is on. Self-heals if the registry
-// was cleared, if Tack was reinstalled to a new path, or if a legacy
-// tasks.json caused the previous first-run check to skip setting it.
+// Reconcile the OS "Run at login" registration with our stored
+// preference on every launch. Default is on. Self-heals if the
+// registration is cleared, or if the app moves to a new path.
+// On macOS we pass openAsHidden so the dock window doesn't pop on login;
+// Tack lives in the menu bar.
 function applyAutoStart() {
-  if (process.platform !== 'win32') return;
+  if (process.platform !== 'win32' && process.platform !== 'darwin') return;
   const prefs = loadPrefs();
   const want = prefs.autoStart !== false;
   const cur = app.getLoginItemSettings();
   if (cur.openAtLogin !== want) {
-    app.setLoginItemSettings({ openAtLogin: want });
+    const opts = { openAtLogin: want };
+    if (process.platform === 'darwin') opts.openAsHidden = true;
+    app.setLoginItemSettings(opts);
   }
 }
 
@@ -268,8 +277,13 @@ app.whenReady().then(() => {
   const trayIcon = fs.existsSync(ICON_FILE)
     ? nativeImage.createFromPath(ICON_FILE)
     : nativeImage.createEmpty();
+  if (process.platform === 'darwin') trayIcon.setTemplateImage(true);
   tray = new Tray(trayIcon);
-  tray.setToolTip('To-Do  ·  ' + HOTKEY);
+  // Friendlier tooltip: show platform-native modifier keys
+  const tooltipHotkey = process.platform === 'darwin'
+    ? 'Cmd+Option+T'
+    : 'Ctrl+Alt+T';
+  tray.setToolTip('Tack  ·  ' + tooltipHotkey);
   tray.on('click', toggleWindow);
 
   function rebuildMenu() {
@@ -282,15 +296,21 @@ app.whenReady().then(() => {
         theme = item.checked ? 'dark' : 'light';
         win.webContents.send('theme-set', theme);
       }},
-      { label: 'Start with Windows', type: 'checkbox', checked: loginItem.openAtLogin, click: (item) => {
+      { label: process.platform === 'darwin' ? 'Start at login' : 'Start with Windows',
+        type: 'checkbox', checked: loginItem.openAtLogin, click: (item) => {
         const p = loadPrefs();
         p.autoStart = item.checked;
         savePrefs(p);
-        app.setLoginItemSettings({ openAtLogin: item.checked });
+        const opts = { openAtLogin: item.checked };
+        if (process.platform === 'darwin') opts.openAsHidden = true;
+        app.setLoginItemSettings(opts);
       }},
       { type: 'separator' },
       { label: 'Open data folder', click: () => shell.openPath(ROOT) },
-      { label: 'Quit Tack  (reopen from Start Menu)', click: () => app.exit(0) }
+      { label: process.platform === 'darwin'
+          ? 'Quit Tack  (reopen from Applications)'
+          : 'Quit Tack  (reopen from Start Menu)',
+        click: () => app.exit(0) }
     ]);
     tray.setContextMenu(menu);
   }

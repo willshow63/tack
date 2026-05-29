@@ -9,9 +9,11 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win nsis",
+    "build:mac": "electron-packager . Tack --platform=darwin --arch=universal --out=dist --overwrite --icon=icon.png --app-bundle-id=com.willshow63.tack --extra-resource=iconTemplate.png --extra-resource=iconTemplate@2x.png --extend-info=mac/Info.plist.json",
     "pack": "electron-builder --dir"
   },
   "devDependencies": {
+    "@electron/packager": "^20.0.0",
     "electron": "^33.0.0",
     "electron-builder": "^25.1.8"
   },
@@ -30,11 +32,21 @@
       "styles.css",
       "icon.png",
       "icon.ico",
+      "iconTemplate.png",
+      "iconTemplate@2x.png",
       "package.json"
     ],
     "win": {
       "target": "nsis",
       "icon": "icon.ico"
+    },
+    "mac": {
+      "target": "zip",
+      "icon": "icon.png",
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "LSUIElement": true
+      }
     },
     "nsis": {
       "oneClick": true,

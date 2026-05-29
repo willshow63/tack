@@ -933,7 +933,9 @@ function buildSteps() {
       run: async () => { await fakeClick(rollBtn); applyRolled(false); },
     },
     {
-      text: 'Summon Tack anytime with Ctrl+Alt+T',
+      text: window.todo.platform === 'darwin'
+        ? 'Summon Tack anytime with Cmd+Option+T'
+        : 'Summon Tack anytime with Ctrl+Alt+T',
       run: async () => { /* end */ },
     },
   ];
