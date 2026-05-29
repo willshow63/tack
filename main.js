@@ -204,15 +204,21 @@ function applyHeight(h, force = false) {
   const target = h + demoExtraTop;
   const b = win.getBounds();
   if (!force && b.height === target) return;
-  // Pass b.x / b.y through directly. snap() to even logical pixels used
-  // to be applied here as a guard against per-roll 1-px drift at
-  // fractional DPI, but it caused a worse bug: after the user drags the
-  // window to an odd logical pixel (common at 1.25x DPI), the next roll
-  // shifted the window by a pixel. setBounds(x) -> getBounds().x is
-  // stable on its own in current Electron, so just preserve the position.
   movingProgrammatically = true;
   win.setResizable(true);
-  win.setBounds({ x: b.x, y: b.y, width: WIN_W, height: target });
+  win.setSize(WIN_W, target);
+  // setSize, setBounds and setPosition all consistently shift the window
+  // by some amount (typically -1, -1) on Windows due to DPI rounding in
+  // Electron's path to SetWindowPos. Measure the shift and feed back an
+  // overshoot so the window ends up at b.x / b.y. Iterate up to 3 times
+  // because the readback can round differently than the write.
+  for (let i = 0; i < 3; i++) {
+    const cur = win.getBounds();
+    const dx = b.x - cur.x;
+    const dy = b.y - cur.y;
+    if (dx === 0 && dy === 0) break;
+    win.setPosition(cur.x + dx + dx, cur.y + dy + dy);
+  }
   const fb = win.getBounds();
   dbg('applyHeight h=' + h + ' extra=' + demoExtraTop + ' force=' + force +
       ' in x=' + b.x + ' y=' + b.y +
@@ -231,15 +237,22 @@ function setDemoExtraTop(top) {
   if (top === demoExtraTop) return;
   const delta = top - demoExtraTop;
   const b = win.getBounds();
-  const newY = b.y - delta;
+  const targetX = b.x;
+  const targetY = b.y - delta;
   const newH = b.height + delta;
   demoExtraTop = top;
   movingProgrammatically = true;
   win.setResizable(true);
-  // Pin width to WIN_W explicitly -- using b.width can drift by 1-2 px
-  // due to OS rounding between getBounds and setBounds. Pass x/y
-  // unshifted so the card stays exactly where it was.
-  win.setBounds({ x: b.x, y: newY, width: WIN_W, height: newH });
+  win.setBounds({ x: targetX, y: targetY, width: WIN_W, height: newH });
+  // Same overshoot-and-correct as applyHeight: setBounds on Windows
+  // shifts the window by (-1, -1) logical px due to DPI rounding.
+  for (let i = 0; i < 3; i++) {
+    const cur = win.getBounds();
+    const dx = targetX - cur.x;
+    const dy = targetY - cur.y;
+    if (dx === 0 && dy === 0) break;
+    win.setPosition(cur.x + dx + dx, cur.y + dy + dy);
+  }
   setTimeout(() => {
     movingProgrammatically = false;
     win.setResizable(false);
