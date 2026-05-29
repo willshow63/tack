@@ -9,13 +9,16 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win nsis",
-    "build:mac": "electron-packager . Tack --platform=darwin --arch=universal --out=dist --overwrite --icon=icon.png --app-bundle-id=com.willshow63.tack --extra-resource=iconTemplate.png --extra-resource=iconTemplate@2x.png --extend-info=mac/Info.plist.json",
+    "icns": "node scripts/make-icns.js",
+    "build:mac": "npm run icns && electron-packager . Tack --platform=darwin --arch=universal --out=dist --overwrite --icon=icon.icns --app-bundle-id=com.willshow63.tack",
     "pack": "electron-builder --dir"
   },
   "devDependencies": {
     "@electron/packager": "^20.0.0",
+    "@electron/universal": "^3.0.4",
     "electron": "^33.0.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "png2icons": "^2.0.1"
   },
   "build": {
     "appId": "com.willshow63.tack",
